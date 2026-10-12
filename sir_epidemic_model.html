@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIR Epidemic Model with Hand-Written Runge–Kutta Solver</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            padding: 50px;
+            line-height: 1.8;
+        }
+        
+        h1 {
+            font-size: 2.2em;
+            margin-bottom: 10px;
+            color: #1a5490;
+            border-bottom: 3px solid #1a5490;
+            padding-bottom: 15px;
+        }
+        
+        h2 {
+            font-size: 1.6em;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            color: #2c5aa0;
+            border-left: 4px solid #2c5aa0;
+            padding-left: 15px;
+        }
+        
+        h3 {
+            font-size: 1.2em;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            color: #3d6ba3;
+        }
+        
+        p {
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+        
+        ul {
+            margin-left: 25px;
+            margin-bottom: 15px;
+        }
+        
+        li {
+            margin-bottom: 10px;
+        }
+        
+        /* Math equation styling */
+        .math-display {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            overflow-x: auto;
+            border-left: 4px solid #1a5490;
+        }
+        
+        /* Table styling */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        th {
+            background: linear-gradient(135deg, #1a5490 0%, #2c5aa0 100%);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        tr:hover {
+            background-color: #f5f7fa;
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        /* Code styling */
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.95em;
+            color: #d63384;
+        }
+        
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 20px 0;
+            line-height: 1.4;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        pre code {
+            background: none;
+            color: #f8f8f2;
+            padding: 0;
+            font-size: 0.9em;
+        }
+        
+        hr {
+            border: none;
+            height: 2px;
+            background: linear-gradient(to right, transparent, #1a5490, transparent);
+            margin: 40px 0;
+        }
+        
+        .results-table {
+            background: #e8f4f8;
+            border-left: 4px solid #1a5490;
+        }
+        
+        .results-table th {
+            background: #1a5490;
+        }
+        
+        .section-intro {
+            font-size: 1.05em;
+            color: #555;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 4px solid #2c5aa0;
+        }
+        
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 25px;
+            }
+            
+            h1 {
+                font-size: 1.6em;
+            }
+            
+            h2 {
+                font-size: 1.3em;
+            }
+            
+            table {
+                font-size: 0.9em;
+            }
+            
+            td, th {
+                padding: 10px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SIR Epidemic Model with Hand-Written Runge–Kutta Solver</h1>
+        
+        <div class="section-intro">
+            <strong>An outbreak in a closed population, modelled by three coupled differential equations, solved with a fourth-order Runge–Kutta integrator and fitted to a real outbreak (influenza in an English boarding school, 1978) with a Nelder–Mead optimiser. The only library code in the implementation is NumPy arrays.</strong>
+        </div>
+        
+        <h2 style="border-left: none; padding-left: 0; margin-top: 20px;">Key Results</h2>
+        
+        <table class="results-table">
+            <thead>
+                <tr>
+                    <th>What</th>
+                    <th>Result</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Measured convergence order of my RK4</td>
+                    <td>4.06, 4.03 (theory: 4)</td>
+                </tr>
+                <tr>
+                    <td>Measured convergence order of Euler</td>
+                    <td>1.01, 1.01 (theory: 1)</td>
+                </tr>
+                <tr>
+                    <td>Agreement with SciPy's RK45 on the SIR system</td>
+                    <td>better than $10^{-6}$</td>
+                </tr>
+                <tr>
+                    <td>Fitted $R_0$ for the 1978 outbreak</td>
+                    <td>3.72 (literature: 3.6 to 3.8)</td>
+                </tr>
+                <tr>
+                    <td>Predicted peak vs observed</td>
+                    <td>289 boys on day 6.4 vs 291 boys on day 6</td>
+                </tr>
+                <tr>
+                    <td>Tests</td>
+                    <td>12, all encoding a theorem or a known answer</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <hr>
+        
+        <h2>1. The Idea in Plain Words</h2>
+        
+        <p>Split a population of $N$ people into three groups:</p>
+        
+        <ul>
+            <li><strong>S, susceptible:</strong> healthy, could catch it;</li>
+            <li><strong>I, infected:</strong> sick and infectious;</li>
+            <li><strong>R, recovered:</strong> immune (or dead), out of the game.</li>
+        </ul>
+        
+        <p>Two things happen. Infected people meet susceptible people and pass the disease on, and infected people recover. Write $\beta$ for the number of infectious contacts one person makes per day, and $\gamma$ for the fraction of infected people who recover each day (so the average illness lasts $1/\gamma$ days).</p>
+        
+        <div class="math-display">
+            $$\begin{aligned}
+            \frac{dS}{dt} &= -\beta \frac{S I}{N} \\[6pt]
+            \frac{dI}{dt} &= \beta \frac{S I}{N} - \gamma I \\[6pt]
+            \frac{dR}{dt} &= \gamma I
+            \end{aligned}$$
+        </div>
+        
+        <p>The infection term is proportional to $S \cdot I$ because an infection needs one person from each group to meet. Dividing by $N$ makes $\beta$ a per-person rate.</p>
+        
+        <h3>When Does an Outbreak Grow?</h3>
+        
+        <p>Factor the middle equation:</p>
+        
+        <div class="math-display">
+            $$\frac{dI}{dt} = I \left( \beta \frac{S}{N} - \gamma \right).$$
+        </div>
+        
+        <p>At the start almost everyone is susceptible, $S \approx N$, so the bracket is $\beta - \gamma$. The number of infected people grows if and only if $\beta > \gamma$, that is</p>
+        
+        <div class="math-display">
+            $$R_0 = \frac{\beta}{\gamma} > 1 .$$
+        </div>
+        
+        <p>$R_0$ is the <span class="highlight">basic reproduction number</span>: one sick person makes $\beta$ infectious contacts per day for $1/\gamma$ days, so infects $\beta / \gamma$ people in a fully susceptible population. Everything about the shape of an epidemic curve follows from this one number.</p>
+        
+        <p>There is no formula for $S(t)$, $I(t)$, $R(t)$. The equations have to be solved numerically, which is what the rest of this project is about.</p>
+        
+        <hr>
+        
+        <h2>2. Worked Example You Can Check With a Calculator</h2>
+        
+        <p>Take $N = 1000$, one infected person, $\beta = 0.5$ and $\gamma = 0.25$ per day, so $R_0 = 2$. Take one step of one day with the RK4 method (Section 3.6). Write $y = [S, I, R]$ and $f(y)$ for the right-hand side above.</p>
+        
+        <p><strong>Start:</strong> $y_0 = [999,\ 1,\ 0]$.</p>
+        
+        <h3>Slope 1 (at the start)</h3>
+        
+        <div class="math-display">
+            $$k_1 = f(y_0) = \left[ -\tfrac{0.5 \cdot 999 \cdot 1}{1000},\ \tfrac{0.5 \cdot 999 \cdot 1}{1000} - 0.25 \cdot 1,\ 0.25 \cdot 1 \right]
+            = [-0.4995,\ 0.2495,\ 0.25].$$
+        </div>
+        
+        <h3>Slope 2 (at the midpoint reached by following $k_1$ for half a day)</h3>
+        
+        <div class="math-display">
+            $$y_0 + \tfrac{h}{2} k_1 = [998.7503,\ 1.1247,\ 0.1250], \qquad
+            k_2 = f\!\left(y_0 + \tfrac{h}{2} k_1\right) = [-0.5617,\ 0.2805,\ 0.2812].$$
+        </div>
+        
+        <h3>Slope 3 (at the midpoint reached by following $k_2$ instead)</h3>
+        
+        <div class="math-display">
+            $$y_0 + \tfrac{h}{2} k_2 = [998.7192,\ 1.1402,\ 0.1406], \qquad
+            k_3 = [-0.5694,\ 0.2843,\ 0.2851].$$
+        </div>
+        
+        <h3>Slope 4 (at the end of the step reached by following $k_3$ for a whole day)</h3>
+        
+        <div class="math-display">
+            $$y_0 + h k_3 = [998.4306,\ 1.2843,\ 0.2851], \qquad
+            k_4 = [-0.6412,\ 0.3201,\ 0.3211].$$
+        </div>
+        
+        <h3>Combine with Weights</h3>
+        
+        <p>Combine with weights $1, 2, 2, 1$ and divide by 6:</p>
+        
+        <div class="math-display">
+            $$y_1 = y_0 + \frac{h}{6}\,(k_1 + 2k_2 + 2k_3 + k_4)
+            = [998.4329,\ 1.2832,\ 0.2839].$$
+        </div>
+        
+        <p>Compare with Euler's method, which just follows $k_1$ for the whole day:
+        $y_1^{\text{Euler}} = y_0 + h k_1 = [998.5005,\ 1.2495,\ 0.25]$.</p>
+        
+        <p>A reference solution with a step of $10^{-4}$ days gives $I(1) = 1.2832$. RK4's error in $I$ is $8 \times 10^{-6}$; Euler's is $3 \times 10^{-2}$. Four slope evaluations bought a factor of 4000 in accuracy.</p>
+        
+        <h3>How Big Does This Outbreak Get?</h3>
+        
+        <p>Section 3.4 derives an equation for $S_\infty$, the number of people never infected:</p>
+        
+        <div class="math-display">
+            $$\ln \frac{999}{S_\infty} = 2 \left( 1 - \frac{S_\infty}{1000} \right).$$
+        </div>
+        
+        <p>Solving by bisection gives $S_\infty = 202.85$, so 797 of 1000 people catch the disease even though $R_0$ is only 2. Running RK4 to day 400 gives $S = 202.85$ as well, and the peak of $I$ (154 people, day 27) happens when $S = 501$, which Section 3.3 says should be $N / R_0 = 500$.</p>
+        
+        <p><code>python worked_example.py</code> prints every one of these numbers.</p>
+        
+        <hr>
+        
+        <h2>3. Derivations</h2>
+        
+        <h3>3.1 Conservation</h3>
+        
+        <p>Add the three right-hand sides:</p>
+        
+        <div class="math-display">
+            $$\frac{dS}{dt} + \frac{dI}{dt} + \frac{dR}{dt}
+            = -\beta \frac{SI}{N} + \left( \beta \frac{SI}{N} - \gamma I \right) + \gamma I = 0 .$$
+        </div>
+        
+        <p>So $S + I + R$ is constant and equals $N$. People move between boxes; nobody is created or lost. Every numerical method that takes linear combinations of the right-hand side (Euler, RK4, all of them) inherits this exactly, which makes it a useful test but a weak one (see Section 7).</p>
+        
+        <h3>3.2 $R_0$ from the Linearisation</h3>
+        
+        <p>Near the start, $S \approx N$, and the infected equation becomes linear:</p>
+        
+        <div class="math-display">
+            $$\frac{dI}{dt} \approx (\beta - \gamma)\, I
+            \quad\Longrightarrow\quad
+            I(t) \approx I_0\, e^{(\beta - \gamma) t} = I_0\, e^{\gamma (R_0 - 1) t}.$$
+        </div>
+        
+        <p>Exponential growth when $R_0 > 1$, exponential decay when $R_0 < 1$. The growth rate $\gamma (R_0 - 1)$ is what an epidemiologist reads off the early part of a log-scale case plot.</p>
+        
+        <h3>3.3 The Peak Happens When $S = N / R_0$</h3>
+        
+        <p>$I$ is at its maximum when $dI/dt = 0$:</p>
+        
+        <div class="math-display">
+            $$I \left( \beta \frac{S}{N} - \gamma \right) = 0
+            \quad\Longrightarrow\quad
+            S = \frac{\gamma N}{\beta} = \frac{N}{R_0}.$$
+        </div>
+        
+        <p>The peak is not when everyone has been infected. It is when the susceptible pool has shrunk enough that each infected person infects fewer than one other.</p>
+        
+        <hr>
+        
+        <h2>4. Fitting Data: Nelder–Mead Optimisation</h2>
+        
+        <h3>4.1 The Sum of Squared Errors</h3>
+        
+        <p>Given observations $I_1^{\text{obs}}, I_2^{\text{obs}}, \ldots$ at times $t_1, t_2, \ldots$, minimise the sum of squared errors:</p>
+        
+        <div class="math-display">
+            $$\operatorname{SSE}(\beta, \gamma) = \sum_j \left( I(t_j;\ \beta, \gamma) - I_j^{\text{obs}} \right)^2 .$$
+        </div>
+        
+        <p>Each evaluation of SSE means running RK4 from $t = 0$ to the last observation. There is no formula for the gradient, so the minimiser must work from function values alone.</p>
+        
+        <h3>4.2 Nelder–Mead: A Triangle That Crawls Downhill</h3>
+        
+        <p>Keep $d + 1$ points (a triangle in two dimensions) and their SSE values. Sort them best to worst, and let $\bar x$ be the centroid of all points except the worst, $x_w$. Then try, in order:</p>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Move</th>
+                    <th>New Point</th>
+                    <th>Accept When</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Reflect</td>
+                    <td>$x_r = \bar x + (\bar x - x_w)$</td>
+                    <td>$f(x_r)$ is between the best and second-worst</td>
+                </tr>
+                <tr>
+                    <td>Expand</td>
+                    <td>$x_e = \bar x + 2(\bar x - x_w)$</td>
+                    <td>$f(x_r)$ is the new best; take $x_e$ if it beats $x_r$</td>
+                </tr>
+                <tr>
+                    <td>Contract outside</td>
+                    <td>$x_c = \bar x + \tfrac{1}{2}(x_r - \bar x)$</td>
+                    <td>$f(x_r)$ beat the worst but nothing else</td>
+                </tr>
+                <tr>
+                    <td>Contract inside</td>
+                    <td>$x_c = \bar x + \tfrac{1}{2}(x_w - \bar x)$</td>
+                    <td>$f(x_r)$ was worse than the worst</td>
+                </tr>
+                <tr>
+                    <td>Shrink</td>
+                    <td>pull every vertex halfway toward the best</td>
+                    <td>both contractions failed</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <p>Stop when the triangle is smaller than $10^{-8}$ across and the SSE values at its corners agree to $10^{-10}$. On the boarding-school data this takes about 60 iterations from a starting guess of $(\beta, \gamma) = (2, 0.5)$.</p>
+        
+        <hr>
+        
+        <h2>5. Verification</h2>
+        
+        <p>Every test states a theorem and checks the code against it.</p>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Test</th>
+                    <th>What It Encodes</th>
+                    <th>Tolerance</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>test_measured_convergence_order</code></td>
+                    <td>global error is $O(h)$ for Euler, $O(h^4)$ for RK4; the measured exponent from halving $h$ twice</td>
+                    <td>order within 0.1</td>
+                </tr>
+                <tr>
+                    <td><code>test_rk4_on_cosine_matches_sine</code></td>
+                    <td>$y' = \cos t$ has exact solution $\sin t$</td>
+                    <td>$10^{-8}$</td>
+                </tr>
+                <tr>
+                    <td><code>test_rk4_matches_scipy_on_sir</code></td>
+                    <td>agreement with <code>scipy.integrate.solve_ivp</code>, RK45 at rtol $10^{-10}$</td>
+                    <td>$10^{-6}$</td>
+                </tr>
+                <tr>
+                    <td><code>test_population_is_conserved</code></td>
+                    <td>Section 3.1: $S + I + R = N$ at every step</td>
+                    <td>$10^{-9}$</td>
+                </tr>
+                <tr>
+                    <td><code>test_compartments_stay_non_negative</code></td>
+                    <td>counts of people cannot go negative</td>
+                    <td>exact</td>
+                </tr>
+                <tr>
+                    <td><code>test_final_size_relation</code></td>
+                    <td>Section 3.4, after integrating to day 400; also matches the bisection root</td>
+                    <td>$10^{-4}$</td>
+                </tr>
+                <tr>
+                    <td><code>test_infection_peaks_when_s_equals_n_over_r0</code></td>
+                    <td>Section 3.3</td>
+                    <td>one step's change in $S$</td>
+                </tr>
+                <tr>
+                    <td><code>test_no_outbreak_when_r0_below_one</code></td>
+                    <td>Section 3.2: $I$ is monotone decreasing when $R_0 < 1$</td>
+                    <td>exact</td>
+                </tr>
+                <tr>
+                    <td><code>test_nelder_mead_finds_minimum_of_quadratic</code></td>
+                    <td>the optimiser finds a known minimum</td>
+                    <td>$10^{-6}$</td>
+                </tr>
+                <tr>
+                    <td><code>test_nelder_mead_finds_minimum_of_rosenbrock</code></td>
+                    <td>the banana function, a standard hard case</td>
+                    <td>$10^{-4}$</td>
+                </tr>
+                <tr>
+                    <td><code>test_fit_recovers_known_parameters_from_noise_free_data</code></td>
+                    <td>fitting synthetic data returns the $\beta, \gamma$ that made it</td>
+                    <td>$10^{-3}$</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <pre><code>python -m pytest tests/ -v
+12 passed</code></pre>
+        
+        <hr>
+        
+        <h2>6. Results: Influenza in a Boarding School, 1978</h2>
+        
+        <h3>The Data</h3>
+        
+        <p>A letter to the <em>British Medical Journal</em> (4 March 1978, p. 587) reported an influenza outbreak among 763 boys at a boarding school in the north of England. One boy returned from holiday infected; over the next two weeks the number confined to bed each day was:</p>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Day</th>
+                    <th>1</th>
+                    <th>2</th>
+                    <th>3</th>
+                    <th>4</th>
+                    <th>5</th>
+                    <th>6</th>
+                    <th>7</th>
+                    <th>8</th>
+                    <th>9</th>
+                    <th>10</th>
+                    <th>11</th>
+                    <th>12</th>
+                    <th>13</th>
+                    <th>14</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>In bed</strong></td>
+                    <td>3</td>
+                    <td>8</td>
+                    <td>28</td>
+                    <td>75</td>
+                    <td>221</td>
+                    <td>291</td>
+                    <td>255</td>
+                    <td>235</td>
+                    <td>190</td>
+                    <td>125</td>
+                    <td>70</td>
+                    <td>28</td>
+                    <td>12</td>
+                    <td>5</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <p>A closed population, a single index case, a known $N$, and daily counts: this is as close to the SIR model's assumptions as real data gets, which is why it appears in every mathematical epidemiology textbook. "In bed" stands in for $I$; the letter also reports that 512 boys in total were confined to bed.</p>
+        
+        <h3>The Fit</h3>
+        
+        <p>Starting at $t = 0$ with $S = 762$, $I = 1$, $R = 0$:</p>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Quantity</th>
+                    <th>Fitted / Predicted</th>
+                    <th>Observed</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>$\beta$</td>
+                    <td>1.665 per day</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>$\gamma$</td>
+                    <td>0.448 per day (illness lasts 2.2 days)</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>$R_0 = \beta / \gamma$</td>
+                    <td><strong>3.72</strong></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>Sum of squared errors</td>
+                    <td>4092 over 14 days (root-mean-square 17 boys)</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>Peak</td>
+                    <td>289 boys on day 6.4</td>
+                    <td>291 boys on day 6</td>
+                </tr>
+                <tr>
+                    <td>Susceptibles left at the peak</td>
+                    <td>$N / R_0 = 205$</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>Final size $N - S_\infty$</td>
+                    <td>743 boys (97 %)</td>
+                    <td>512 confined to bed (67 %)</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <p>The peak is right to within two boys and half a day. The final size is not: the model says 97 % of the school should have been infected, the letter says 67 % were confined to bed. Those are not the same thing. Boys with mild cases were never sent to bed, so "in bed" undercounts $I$ on the way down, which is visible in the plot: the last four data points sit below the curve. A model with an asymptomatic fraction would fix this, at the cost of a parameter the data cannot identify.</p>
+        
+        <h3>Counterfactual</h3>
+        
+        <p>Rerun the fitted model with $\beta$ reduced by 20 %, as if the school had cut infectious contacts by a fifth:</p>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>$R_0$</th>
+                    <th>Peak</th>
+                    <th>Peak Day</th>
+                    <th>Final Size</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>As Happened</strong></td>
+                    <td>3.72</td>
+                    <td>289</td>
+                    <td>6.4</td>
+                    <td>743 (97 %)</td>
+                </tr>
+                <tr>
+                    <td><strong>Contacts Down 20 %</strong></td>
+                    <td>2.98</td>
+                    <td>227</td>
+                    <td>8.3</td>
+                    <td>716 (94 %)</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <p>The peak falls by a fifth and arrives two days later, but the final size barely moves. With $R_0$ near 3 almost everyone gets infected eventually; what intervention buys is a flatter, later peak. That is "flatten the curve" as a consequence of Section 3.4.</p>
+        
+        <hr>
+        
+        <h2>7. Numerical Lessons Learned</h2>
+        
+        <h3>The Fitted $R_0$ Depends on a Number the Data Does Not Contain</h3>
+        
+        <p>The letter says one boy brought the flu back, so $I_0 = 1$. But the fit is sensitive to that assumption:</p>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Assumed $I_0$</th>
+                    <th>0.5</th>
+                    <th>1</th>
+                    <th>2</th>
+                    <th>3</th>
+                    <th>5</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Fitted $R_0$</strong></td>
+                    <td>3.91</td>
+                    <td>3.72</td>
+                    <td>3.53</td>
+                    <td>3.42</td>
+                    <td>3.28</td>
+                </tr>
+                <tr>
+                    <td><strong>SSE</strong></td>
+                    <td>3774</td>
+                    <td>4092</td>
+                    <td>6145</td>
+                    <td>8409</td>
+                    <td>12697</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <p>A bigger seed needs a slower disease to reach 291 by day 6. The SSE prefers small $I_0$, but $I_0 = 0.5$ boys is not a thing. The honest statement is "$R_0 \approx 3.7$ given one index case", and the range 3.3 to 3.9 is a better summary of the uncertainty than any single number.</p>
+        
+        <h3>Nelder–Mead is Local</h3>
+        
+        <p>From starting guesses $(0.5, 0.1)$, $(5, 5)$ and $(0.1, 0.05)$ the simplex found the same minimum, $R_0 = 3.72$, in 73 to 115 iterations. From $(10, 0.2)$ it ran off to $\beta = 78$, $\gamma = 6.2$ with an SSE eighty times worse, and reported success. At that starting point the disease burns through the school in a day and the SSE surface is nearly flat, so the triangle finds a local dip and stops. Gradient-free does not mean global. <code>run.py</code> starts from $(2, 0.5)$, chosen by looking at the data: the peak is a week in, so $\gamma$ is around half.</p>
+        
+        <h3>Conservation is a Necessary Check, Not a Sufficient One</h3>
+        
+        <p>With the fitted parameters and a step of $h = 2$ days, Euler's method produces $I = -1.6 \times 10^{7}$ boys, while $S + I + R$ still equals 763 to $10^{-9}$. Any method that updates $y$ by a linear combination of the right-hand side conserves the sum exactly, because the right-hand side sums to zero, no matter how wrong the individual components are. The test for non-negativity catches what the conservation test cannot. RK4 at the same step size stays positive but underestimates the peak by 6 %, and by 21 % at $h = 3$; at $h = 0.05$, the step <code>run.py</code> uses, it agrees with SciPy to $10^{-6}$.</p>
+        
+        <h3>Step-Size Choice</h3>
+        
+        <p>The fit runs RK4 with $h = 0.05$ days, 20 steps per data point. Each SSE evaluation is 280 steps of a 3-vector, and Nelder–Mead needs about a hundred evaluations, so the whole fit takes a fraction of a second. Halving $h$ to 0.025 left the fitted $R_0 = 3.72002$ unchanged to five decimal places, which is how I know the step is small enough.</p>
+        
+        <hr>
+        
+        <h2>8. How to Run</h2>
+        
+        <pre><code>pip install -r ../requirements.txt
+
+python -m pytest tests/ -v     # 12 tests, about 3 seconds
+
+python worked_example.py       # every number in Section 2
+
+python run.py                  # fit the 1978 outbreak, write figures/
+
+python make_figures.py         # the convergence-order and RK4-slopes diagrams</code></pre>
+        
+        <p>SciPy is used only in <code>tests/test_rk4.py</code> as the reference solver.</p>
+        
+        <hr>
+        
+        <h2>9. Code Map</h2>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>File</th>
+                    <th>Contents</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>sir/model.py</code></td>
+                    <td><code>SIRParams</code>, the right-hand side <code>sir_rhs</code>, <code>r0</code>, the final-size relation and a hand-written <code>bisect</code></td>
+                </tr>
+                <tr>
+                    <td><code>sir/rk4.py</code></td>
+                    <td><code>euler_step</code>, <code>rk4_step</code>, and <code>integrate</code> (fixed step, lands on the end time exactly)</td>
+                </tr>
+                <tr>
+                    <td><code>sir/fit.py</code></td>
+                    <td>Nelder–Mead simplex (<code>nelder_mead</code>), the least-squares loss <code>sse</code>, and <code>fit_sir</code></td>
+                </tr>
+                <tr>
+                    <td><code>data/boarding_school_1978.csv</code></td>
+                    <td>the 14 daily counts from the BMJ letter</td>
+                </tr>
+                <tr>
+                    <td><code>tests/test_rk4.py</code></td>
+                    <td>convergence orders, exact solutions, SciPy comparison</td>
+                </tr>
+                <tr>
+                    <td><code>tests/test_sir.py</code></td>
+                    <td>conservation, positivity, final size, peak location, $R_0 < 1$</td>
+                </tr>
+                <tr>
+                    <td><code>tests/test_fit.py</code></td>
+                    <td>Nelder–Mead on a quadratic and on Rosenbrock; parameter recovery</td>
+                </tr>
+                <tr>
+                    <td><code>worked_example.py</code></td>
+                    <td>Section 2, one RK4 step by hand</td>
+                </tr>
+                <tr>
+                    <td><code>run.py</code></td>
+                    <td>Section 6, the fit and its figures</td>
+                </tr>
+                <tr>
+                    <td><code>make_figures.py</code></td>
+                    <td>Section 3 diagrams</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
